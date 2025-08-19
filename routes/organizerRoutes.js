@@ -11,6 +11,8 @@ router.post(
   createEvent
 );
 
+router.get('/events-booking',protect,roleBasedAccess(['organizer']),getEventByUserId)
+
 
 router.get('/eventsoforganizer',protect,roleBasedAccess(['organizer']),getEventByUserId)
 export default router;

@@ -6,8 +6,8 @@ const bookScheme=new mongoose.Schema({
     seatNumber:{type:Number,required:true},
     totalamount:{type:Number,required:true},
     status:{type:String,enum:["pending","confirmed","cancelled"],required:true},
-    paymentId:{type:String,required:true},
+    paymentId:{type:String},
     createAt:{type:Date,default:Date.now}
 })
 
-export default mongoose.model('Booking',bookScheme);
+export default mongoose.model('Booking',bookScheme);    
