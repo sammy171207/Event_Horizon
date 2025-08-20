@@ -1,4 +1,6 @@
 import Event from '../models/Event.js';
+import { handleError, handleNotFoundError, handleValidationError } from '../utils/errorHandler.js';
+import { cache, CACHE_KEYS } from '../utils/cache.js';
 
 const createEvent = async (req, res) => {
   try {
@@ -29,48 +31,98 @@ const createEvent = async (req, res) => {
       user: userId
     });
 
+    // Clear related caches
+    await cache.del(CACHE_KEYS.EVENTS);
+    await cache.del(CACHE_KEYS.USER_EVENTS(userId));
+
     return res.status(201).json({
       message: "Event created successfully",
+      success: true,
       event
     });
   } catch (error) {
-    console.error("Create Event Error:", error.message);
-    res.status(500).json({ message: error.message });
+    if (error.name === 'ValidationError') {
+      return handleValidationError(res, error);
+    }
+    return handleError(res, error, "Failed to create event");
   }
 };
 
 const getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find();
-    return res.status(200).json(events);
+    // Try to get from cache first
+    const cachedEvents = await cache.get(CACHE_KEYS.EVENTS);
+    if (cachedEvents) {
+      return res.status(200).json(cachedEvents);
+    }
+
+    const events = await Event.find().populate('user', 'name email');
+    
+    // Cache the result
+    await cache.set(CACHE_KEYS.EVENTS, events, 1800); // 30 minutes
+
+    return res.status(200).json({
+      success: true,
+      count: events.length,
+      events
+    });
   } catch (error) {
-    console.error("Get All Events Error:", error.message);
-    res.status(500).json({ message: error.message });
+    return handleError(res, error, "Failed to fetch events");
   }
 };
 
-const getEventById=async(req,res)=>{
+const getEventById = async (req, res) => {
   try {
-    const eventId=req.params.id;
-    const event=await Event.findById(eventId);
-    console.log('Fetch Event Detail Successfully',event)
-    return res.status(200).json(event);
-  } catch (error) {
-    console.error("Get Event By Id Error:", error.message);
-    res.status(500).json({ message: error.message });
-  }
-}
+    const eventId = req.params.id;
+    
+    // Try to get from cache first
+    const cachedEvent = await cache.get(CACHE_KEYS.EVENT(eventId));
+    if (cachedEvent) {
+      return res.status(200).json(cachedEvent);
+    }
 
-//Get all the Event Create by user 
-const getEventByUserId=async(req,res)=>{
+    const event = await Event.findById(eventId).populate('user', 'name email');
+    
+    if (!event) {
+      return handleNotFoundError(res, "Event");
+    }
+
+    // Cache the result
+    await cache.set(CACHE_KEYS.EVENT(eventId), event, 1800); // 30 minutes
+
+    return res.status(200).json({
+      success: true,
+      event
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to fetch event");
+  }
+};
+
+// Get all events created by user
+const getEventByUserId = async (req, res) => {
   try {
-    const user=req.user._id;
-    const events=await Event.find({user});
-    console.log('Fetch Event Detail Successfully by user',events)
-    return res.status(200).json(events);
-  } catch (error) {
-    res.json({message:"Something went wrong"});
-  }
-}
+    const userId = req.user._id;
+    
+    // Try to get from cache first
+    const cachedEvents = await cache.get(CACHE_KEYS.USER_EVENTS(userId));
+    if (cachedEvents) {
+      return res.status(200).json(cachedEvents);
+    }
 
-export { createEvent ,getAllEvents,getEventById,getEventByUserId};
+    const events = await Event.find({ user: userId });
+    
+    // Cache the result
+    await cache.set(CACHE_KEYS.USER_EVENTS(userId), events, 1800); // 30 minutes
+
+    return res.status(200).json({
+      success: true,
+      count: events.length,
+      events
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to fetch user events");
+  }
+};
+
+export { createEvent, getAllEvents, getEventById, getEventByUserId };

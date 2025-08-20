@@ -1,11 +1,14 @@
+import { handleError } from '../utils/errorHandler.js';
 
-const getProfile=async(req,res)=>{
+const getProfile = async (req, res) => {
     try {
-        console.log('Profile Fetch Successful',req.user)
-      res.status(200).json(req.user);
+        return res.status(200).json({
+            success: true,
+            user: req.user
+        });
     } catch (error) {
-        res.status(500).json({message:"Something went wrong"});
+        return handleError(res, error, "Failed to fetch profile");
     }
-}
+};
 
-export {getProfile}
+export { getProfile };
