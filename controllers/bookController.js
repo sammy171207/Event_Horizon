@@ -102,17 +102,7 @@ const sendBookingTicket = async (booking) => {
     console.log("Email sent successfully ✅");
 };
 
-const updateStatus = async (req, res) => {
-    try {
-        const bookingId = req.params.id;
-        const { status } = req.body;
-        const updatedBooking = await Booking.findByIdAndUpdate(bookingId, { status }, { new: true });
-        console.log('Update Booking Status Successfully', updatedBooking)
-        return res.status(200).json(updatedBooking);
-    } catch (error) {
-        res.json({ message: "Something went wrong" });
-    }
-}
+
 
 
 const orgazinerBooking=async(req,res)=>{
