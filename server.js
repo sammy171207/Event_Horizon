@@ -9,16 +9,17 @@ import organizerRoute from './routes/organizerRoutes.js'
 import eventRoute from './routes/eventRoutes.js'
 const app=express();
 dotenv.config();
-
+app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 connectDB()
-app.use(cors());
+
 
 app.use('/api/auth',authRoute)
 app.use('/api/user',userRoute)
 app.use('/api/organizer',organizerRoute)
 app.use('/api/event',eventRoute)
+
 app.get('/test',(req,res)=>{
     res.send('This is Test Routes')
 })

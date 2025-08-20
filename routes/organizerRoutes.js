@@ -1,6 +1,7 @@
 import express from 'express';
 import { createEvent, getEventByUserId } from '../controllers/eventController.js';
 import { protect, roleBasedAccess } from '../middlewares/authMiddleware.js';
+import { getAllBookingById } from '../controllers/bookController.js';
 
 const router = express.Router();
 
@@ -11,8 +12,9 @@ router.post(
   createEvent
 );
 
-router.get('/events-booking',protect,roleBasedAccess(['organizer']),getEventByUserId)
+router.get('/',protect,roleBasedAccess(['organizer']),getEventByUserId)
 
-
-router.get('/eventsoforganizer',protect,roleBasedAccess(['organizer']),getEventByUserId)
+// Example: GET /api/organizer/bookings?id=EVENT_ID
+router.get("/bookings", protect,roleBasedAccess(["organizer"]), getAllBookingById);
 export default router;
+``

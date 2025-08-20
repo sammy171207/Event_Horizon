@@ -10,13 +10,15 @@ const bookEvent = async (req, res) => {
         const event_id = req.params.id
         const { seatNumber } = req.body;
         const event = await Event.findById(event_id);
+        if (event.availableSeats < seatNumber) {
+            return res.status(400).json({ message: "Not enough seats available" });
+        }
+        
         const totalamount = seatNumber * event.basePrice;
-        let booking = await new Booking({ user: user_id, event: event_id, seatNumber, totalamount, status: "pending" }).save();
+        let booking = await new Booking({ user: user_id, event: event_id, seatNumber, totalamount, status: "confirmed" }).save();
         console.log('sending mail to email')
         await sendBookingTicket(booking);
         console.log("Mail Send to Email")
-        console.log('Update Booking Status Started');
-        booking = await Booking.findByIdAndUpdate(booking._id, { status: "confirmed" }, { new: true });
         console.log('Update the Event Available Seats');
         await Event.findByIdAndUpdate(event_id, { $inc: { availableSeats: -seatNumber } });
         console.log('Update Booking Status Successfully');
@@ -105,18 +107,46 @@ const sendBookingTicket = async (booking) => {
 
 
 
-const orgazinerBooking=async(req,res)=>{
+
+const getAllBookingById=async(req,res)=>{
     try {
         const organizer_id=req.user._id
-        
-        const event=await Event.find({user:organizer_id})
-        console.log('Fetch Event Detail Successfully',event)
-        return res.status(200).json(event);
+        const event_id=req.query.id
+        const events=await Event.find({user:organizer_id})
+        console.log(events,'Event Detail Found by Organizer');
+        const event=events.find(event=>event._id.toString()===event_id)
+        if(!event){
+            return res.status(404).json({message:"Event not found"})
+        }
+        const booking=await Booking.find({event:event_id})
+        console.log('Fetch Booking Detail Successfully by user',booking)
+        return res.status(200).json(booking);
     } catch (error) {
-        
+        res.status(500).json({message:"Something went wrong"});
+    }
+}
+
+const cancellBookbyUserId=async(req,res)=>{
+    try {
+        const user_id=req.user._id
+        const booking_id=req.params.id
+        console.log('Finding Booking by Id',booking_id,user_id)
+        const booking=await Booking.findById({ _id: booking_id, user: user_id });
+        console.log('Booking Found',booking)
+        if(!booking){
+            return res.status(404).json({message:"Booking not found"})
+        }else{
+           await Booking.findByIdAndUpdate(booking_id,{status:"cancelled"})
+           await Event.findByIdAndUpdate(booking.event,{$inc:{availableSeats:booking.seatNumber}})
+           console.log('Booking Cancelled Successfully')
+        }
+        return res.status(200).json({message:"Booking Cancelled Successfully"})
+    } catch (error) {
+        console.log('error',error)
+        return res.status(500).json({message:"Something went wrong"})
     }
 }
 
 
 
-export { bookEvent, getBookByStatusbyUserId }
+export { bookEvent, getBookByStatusbyUserId,getAllBookingById,cancellBookbyUserId };

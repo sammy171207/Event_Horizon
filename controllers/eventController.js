@@ -61,6 +61,7 @@ const getEventById=async(req,res)=>{
   }
 }
 
+//Get all the Event Create by user 
 const getEventByUserId=async(req,res)=>{
   try {
     const user=req.user._id;
