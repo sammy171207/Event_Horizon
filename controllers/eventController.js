@@ -125,4 +125,86 @@ const getEventByUserId = async (req, res) => {
   }
 };
 
-export { createEvent, getAllEvents, getEventById, getEventByUserId };
+// Update event
+const updateEvent = async (req, res) => {
+  try {
+     const user_id= req.user._id;
+     const event_id = req.params.id;
+     const { title, description, date, venue, basePrice, dynamicPrice, totalSeats, availableSeats, image } = req.body;
+
+     const event = await Event.findOne({ _id: event_id, user: user_id });
+
+     if (!event) {
+       return handleNotFoundError(res, "Event");
+     }
+
+     event.title = title;
+     event.description = description;
+     event.date = date;
+     event.venue = venue;
+     event.basePrice = basePrice;
+     event.dynamicPrice = dynamicPrice;
+     event.totalSeats = totalSeats;
+     event.availableSeats = availableSeats;
+     event.image = req.file?.path || req.body.image;;
+     event.date=Date.now();
+
+     await event.save();
+     console.log('event updated');
+     return res.status(200).json({
+       message: "Event updated successfully",
+       success: true,
+       event
+     })
+  } catch (error) {
+    console.log('error', error);
+    return handleError(res, error, "Failed to update event");
+  }
+}
+
+const deleteEvent = async (req, res) => {
+  try {
+    const user_id= req.user._id;
+    const event_id = req.params.id;
+
+    const event = await Event.findOne({ _id: event_id, user: user_id });
+
+    if (!event) {
+      return handleNotFoundError(res, "Event");
+    }
+
+    await event.deleteOne();
+
+    
+
+    return res.status(200).json({
+      message: "Event deleted successfully",
+      success: true
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+const getOrganizerEventById = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const organizerId = req.user._id;
+
+    const event = await Event.findOne({ _id: eventId, user: organizerId });
+
+    if (!event) {
+      return handleNotFoundError(res, "Event");
+    }
+
+    return res.status(200).json({
+      success: true,
+      event
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to fetch event");
+  }
+};
+
+export { createEvent, getAllEvents, getEventById, getEventByUserId , updateEvent,deleteEvent, getOrganizerEventById};

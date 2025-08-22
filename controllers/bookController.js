@@ -76,6 +76,7 @@ const bookEvent = async (req, res) => {
     }
 };
 
+// Get all bookings by user and status 
 const getBookByStatusbyUserId = async (req, res) => {
     try {
         const user_id = req.user._id;
@@ -93,7 +94,7 @@ const getBookByStatusbyUserId = async (req, res) => {
             query.status = status;
         }
 
-        const bookings = await Booking.find(query)
+        const bookings = await Booking.find(query)  
             .populate("event", "title date venue image")
             .populate("user", "name email")
             .sort({ createdAt: -1 });
@@ -111,6 +112,7 @@ const getBookByStatusbyUserId = async (req, res) => {
     }
 };
 
+// Send email with ticket
 const sendBookingTicket = async (booking) => {
     const user = await User.findById(booking.user);
     const event = await Event.findById(booking.event);
@@ -156,6 +158,7 @@ const sendBookingTicket = async (booking) => {
     });
 };
 
+// Get all bookings by organizer 
 const getAllBookingById = async (req, res) => {
     try {
         const organizer_id = req.user._id;
@@ -188,6 +191,7 @@ const getAllBookingById = async (req, res) => {
     }
 };
 
+// Cancel booking
 const cancellBookbyUserId = async (req, res) => {
     try {
         const user_id = req.user._id;
@@ -226,4 +230,71 @@ const cancellBookbyUserId = async (req, res) => {
     }
 };
 
-export { bookEvent, getBookByStatusbyUserId, getAllBookingById, cancellBookbyUserId };
+const getAllBookingByEventId=async (req, res) => {
+    try {
+        const organizer_id = req.user._id;
+        const event_id = req.params.id;
+
+        if (!event_id) {
+            return res.status(400).json({
+                message: "Event ID is required",
+                success: false
+            });
+        }
+
+        // Verify organizer owns the event
+        const event = await Event.findOne({ _id: event_id, user: organizer_id });
+        if (!event) {
+            return handleNotFoundError(res, "Event");
+        }
+
+        const bookings = await Booking.find({ event: event_id })
+            .populate("user", "name email")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: bookings.length,
+            bookings
+        });
+
+    } catch (error) {
+        console.log(error);
+        return handleError(res, error, "Failed to fetch event bookings");
+    }
+}
+
+const getAllBookingsForOrganizer = async (req, res) => {
+    try {
+        const organizerId = req.user._id;
+
+        // Find all events for the organizer
+        const events = await Event.find({ user: organizerId });
+
+        if (!events || events.length === 0) {
+            return res.status(200).json({ 
+                success: true, 
+                count: 0, 
+                bookings: [] 
+            });
+        }
+
+        const eventIds = events.map(event => event._id);
+
+        // Find all bookings for those events
+        const bookings = await Booking.find({ event: { $in: eventIds } })
+            .populate('event', 'title date')
+            .populate('user', 'name email')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: bookings.length,
+            bookings
+        });
+    } catch (error) {
+        return handleError(res, error, "Failed to fetch bookings");
+    }
+};
+
+export { bookEvent, getBookByStatusbyUserId, getAllBookingById, cancellBookbyUserId ,getAllBookingByEventId, getAllBookingsForOrganizer};
