@@ -1,15 +1,26 @@
 import express from 'express';
+import {
+    bookEvent,
+    getBookByStatusbyUserId,
+    cancellBookbyUserId
+} from '../controllers/bookController.js';
+import { protect } from '../middlewares/authMiddleware.js';
 import { getProfile } from '../controllers/userController.js';
-import { protect, roleBasedAccess } from '../middlewares/authMiddleware.js';
-import { bookEvent, cancellBookbyUserId, getBookByStatusbyUserId } from '../controllers/bookController.js';
+
 const router = express.Router();
 
-router.get('/profile',protect, getProfile);
+// -- User Profile Route --
+// GET /api/users/profile -> Get user's own profile
+router.get('/profile', protect, getProfile);
 
-router.post('/book-event/:id',protect,roleBasedAccess(['user']),bookEvent)
+// -- User Booking Routes --
+// POST /api/users/book/:id -> User books a ticket for a specific event
+router.post('/book/:id', protect, bookEvent);
 
-router.get('/bookingofUser',protect,roleBasedAccess(['user']),getBookByStatusbyUserId)
+// GET /api/users/my-bookings -> Get all bookings made by the logged-in user
+router.get('/my-bookings', protect, getBookByStatusbyUserId);
 
-router.put('/booking/cancel/:id',protect,roleBasedAccess(['user']),cancellBookbyUserId)
+// PATCH /api/users/cancel/:id -> User cancels their own booking
+router.patch('/cancel/:id', protect, cancellBookbyUserId);
 
 export default router;
